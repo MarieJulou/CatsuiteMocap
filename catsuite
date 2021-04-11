@@ -1,0 +1,136 @@
+#include <Adafruit_CircuitPlayground.h>
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
+
+//ACCELEROMETER
+#define NUM_LEDS 10
+float X, Y, Z;
+
+#define analogPinFr A2
+#define analogPinET A3
+
+int rawFr = 0;
+int Vin = 3.3;
+float Vout = 0;
+float RFrconnue = 30;
+float RFrinconnue = 0; //400
+int GreenQuantity = 0;
+
+int analogPinEt = 10;
+
+int rawEt = 0;
+float REtconnue = 30;
+float REtinconnue = 0; //400
+int BlueQuantity = 0;
+
+void setup() {
+  CircuitPlayground.begin();
+  CircuitPlayground.setBrightness(30);
+  Serial.begin(9600);
+}
+
+void loop() {
+  CircuitPlayground.clearPixels();
+  X = CircuitPlayground.motionX();
+  Y = CircuitPlayground.motionY();
+  Z = CircuitPlayground.motionZ();
+
+//  Serial.print("X: ");
+//  Serial.print(X);
+//  Serial.print("  Y: ");
+//  Serial.print(Y);
+//  Serial.print("  Z: ");
+//  Serial.println(Z);
+  if(CircuitPlayground.slideSwitch() == true){
+    if( X > 0 ) {
+  //    Serial.println("AVANT");
+      if( Y > 0 ) {
+  //      Serial.println("BAS");
+        if( Y < 9 ) fading(map(Y, 10, 0, 4, 2));
+        else {
+          CircuitPlayground.setPixelColor(5, 255, 255, 255);
+          CircuitPlayground.setPixelColor(4, 255, 255, 255);
+        }
+      } 
+      else {
+   //     Serial.println("HAUT");
+        if( Y > -9 ) fading(map(Y, -10, 0, 0, 2));
+        else {
+          CircuitPlayground.setPixelColor(0, 255, 255, 255);
+          CircuitPlayground.setPixelColor(9, 255, 255, 255);
+        }
+      }
+    } 
+    else {
+  //    Serial.println("ARRIERE");
+      if( Y > 0 ) {
+        if( Y < 9 ) fading(map(Y, 10, 0, 5, 7));
+        else {
+          CircuitPlayground.setPixelColor(5, 255, 255, 255);
+          CircuitPlayground.setPixelColor(4, 255, 255, 255);
+        }
+      } 
+      else {
+        if( Y > -9 ) fading(map(Y, -10, 0, 9, 7));
+        else {
+          CircuitPlayground.setPixelColor(0, 255, 255, 255);
+          CircuitPlayground.setPixelColor(9, 255, 255, 255);
+        }
+      }
+    }
+  }
+  else{
+    rawEt = analogRead(analogPinEt);
+    rawFr = analogRead(analogPinFr); 
+    RFrinconnue = rawFr * Vin;
+    Vout = (RFrinconnue)/1024.0;
+    RFrinconnue = (Vin/Vout) - 1;
+    RFrinconnue= RFrconnue * RFrinconnue;
+    Serial.print("Vout: ");
+    Serial.println(Vout);
+    Serial.print("resiste capteur froissement: ");
+    Serial.println(RFrinconnue);
+    REtinconnue = rawEt * Vin;
+    Vout = (REtinconnue)/1024.0;
+    REtinconnue = (Vin/Vout) - 1;
+    REtinconnue= REtconnue * REtinconnue;
+    Serial.print("Vout: ");
+    Serial.println(Vout);
+    Serial.print("resiste capteur étirement: ");
+    Serial.println(REtinconnue);
+    for(int i=0; i< NUM_LEDS; i++){
+      if (i < NUM_LEDS/2){
+        GreenQuantity = (RFrinconnue - 50)*2; 
+        Serial.println(GreenQuantity);
+        if(GreenQuantity > 255){
+          GreenQuantity = 255;
+        }
+        if(GreenQuantity < 0){
+          GreenQuantity = 0;
+        }
+        CircuitPlayground.setPixelColor(i,255 - GreenQuantity,GreenQuantity, 0); 
+      }
+      else{
+        BlueQuantity = (REtinconnue -70)*13;    
+        Serial.println(BlueQuantity);
+        if(BlueQuantity > 255 ){
+          BlueQuantity = 255;
+        }
+        if(BlueQuantity < 0){
+          BlueQuantity = 0;
+        }
+        CircuitPlayground.setPixelColor(i,255 - BlueQuantity,0, BlueQuantity); 
+      }    
+    }
+  }
+  
+  delay(300);
+}
+
+void fading(int center){
+  for( int i = 0; i < NUM_LEDS/3; i++){
+    CircuitPlayground.setPixelColor((NUM_LEDS + center + i)%10, i*55, int(Z)*15, 255-i*55);
+    CircuitPlayground.setPixelColor((NUM_LEDS + center - i)%NUM_LEDS, i*55, int(Z)*15, 255-i*55);
+  }
+}
